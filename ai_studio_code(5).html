@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JCCM: The Final Theory</title>
+    
+    <!-- 引入 Inter 字体 (Apple 风格) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --text-sub: #d1d1d6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden;
+            line-height: 2;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- 3D 画布 --- */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            background: #000; /* 纯黑背景，无遮罩 */
+        }
+
+        /* --- 内容容器 --- */
+        .page-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        section {
+            padding: 8rem 0;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        /* --- 排版美学 --- */
+        
+        .chapter-mark {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2rem;
+            display: block;
+            text-shadow: 0 2px 10px rgba(0,0,0,1); /* 强阴影 */
+        }
+
+        h1 {
+            font-size: clamp(4rem, 8vw, 7rem);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1.05;
+            margin-bottom: 3rem;
+            color: #fff;
+            text-shadow: 0 10px 40px rgba(0,0,0,1); /* 强阴影 */
+        }
+
+        h2 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-top: 4rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            text-shadow: 0 5px 30px rgba(0,0,0,1); /* 强阴影 */
+        }
+
+        .lead {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #ffffff;
+            line-height: 1.6;
+            margin-bottom: 3rem;
+            text-shadow: 0 4px 15px rgba(0,0,0,1); /* 强阴影 */
+        }
+
+        p {
+            font-size: 1.15rem;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 2rem;
+            text-align: justify;
+            font-weight: 400;
+            text-shadow: 0 3px 10px rgba(0,0,0,1); /* 确保正文在任何颜色粒子上都清晰 */
+        }
+
+        strong {
+            color: #fff;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 2px 0 rgba(0,0,0,1); /* 边框阴影 */
+        }
+
+        /* 数据展示 (极简) */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 4rem;
+            margin: 4rem 0;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            padding: 3rem 0;
+            background: rgba(0,0,0,0.3); /* 加深一点背景 */
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .data-item h3 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to bottom, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.8));
+        }
+
+        .data-item p {
+            font-size: 0.9rem;
+            color: #ddd;
+            text-shadow: 0 2px 4px rgba(0,0,0,1);
+            margin: 0;
+        }
+
+        /* --- 底部 (恢复高大上的版权页) --- */
+        footer {
+            margin-top: 8rem;
+            padding: 6rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            color: #86868b;
+            font-size: 0.9rem;
+            background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.8));
+        }
+
+        footer .copyright {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        footer .framework {
+            font-family: 'SF Mono', 'Menlo', monospace; /* 科技感等宽字体 */
+            font-size: 0.8rem;
+            opacity: 0.7;
+            letter-spacing: -0.02em;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="page-wrapper">
+        <!-- 序章 -->
+        <section id="intro">
+            <span class="chapter-mark">INTRODUCTION</span>
+            <h1>宇宙的<br>螺旋真相</h1>
+            <p class="lead">
+                我们站在物理学大厦崩塌的前夜。从微观粒子的量子纠缠，到宏观星系的加速膨胀，旧有的线性时间观已无法解释我们观测到的现实。
+            </p>
+            <p>
+                人类对宇宙的理解曾经历过三次跃迁：地心说、日心说、大爆炸理论。而现在，JCCM（枣核型因果晶体模型）正在开启第四次认知革命。这一理论并不温和，它激进地提出：时间不是流动的，宇宙不是随机演化的，我们的意识不是孤立的。
+            </p>
+            <p>
+                请跟随我们，深入这个由纯粹几何与因果逻辑构建的终极现实。在这里，过去和未来在螺旋中交汇。
+            </p>
+        </section>
+
+        <!-- 第一章：困境 -->
+        <section>
+            <span class="chapter-mark">CHAPTER 01: THE PARADOX</span>
+            <h2>标准模型的裂痕</h2>
+            <p>
+                在过去的一个世纪里，ΛCDM 模型（标准宇宙学模型）被视为物理学的皇冠。然而，随着观测精度的提升，这顶皇冠上出现了令人不安的裂痕。这不仅是数据的偏差，更是底层逻辑的断裂。
+            </p>
+            <p>
+                <strong>1. 哈勃张力 (Hubble Tension) 的不可调和性：</strong><br>
+                当我们通过普朗克卫星观测宇宙诞生之初的微波背景辐射（CMB）来推算宇宙膨胀速度时，得到的哈勃常数约为 67.4 km/s/Mpc。然而，当我们利用造父变星观测邻近宇宙的膨胀时，数值却飙升至 74.0 km/s/Mpc。两者之间存在高达 9% 的统计学差异（超过 5σ 的置信度）。这意味着什么？意味着我们用同一把尺子，在不同的时间段量出了不同的宇宙。要么是我们的测量全错了，要么是宇宙的演化规律在半途中被某种神秘力量“修改”了。
+            </p>
+            <p>
+                <strong>2. 延迟选择实验对线性时间的嘲弄：</strong><br>
+                惠勒的延迟选择实验及其后续的量子擦除实验，向我们展示了一个恐怖的事实：光子似乎能够“预知”未来。当我们在光子飞行的路径末端决定是否进行观测时，这个决定竟然能反过来决定光子在几纳秒前是以“波”还是“粒子”的形式通过狭缝。未来的选择，决定了过去的历史。这彻底粉碎了经典物理学“过去->现在->未来”的线性因果链条。
+            </p>
+            <p>
+                <strong>3. 意识的“硬问题”：</strong><br>
+                在所有物理公式中，原本没有“观察者”的位置。但量子力学却强行将“意识”拉回了舞台中央。为什么波函数坍缩需要观测？为什么 1400 克重的大脑灰质能产生主观体验？唯物主义还原论试图将意识解释为神经元的放电，但这就像试图通过分析晶体管的硅结构来解释《哈姆雷特》的剧情一样徒劳。我们遗漏了宇宙拼图中最关键的一块。
+            </p>
+        </section>
+
+        <!-- 第二章：模型详解 -->
+        <section>
+            <span class="chapter-mark">CHAPTER 02: THE CAUSAL CRYSTAL</span>
+            <h2>整体显化的四维几何</h2>
+            <p>
+                JCCM 模型并没有试图修补旧有的理论，它选择了重构地基。我们提出：宇宙本质上是一个<strong>“冻结的四维因果晶体”</strong>。
+            </p>
+            <p>
+                想象你手中的 DVD 光盘。电影里的角色经历着生离死别，对他们来说，时间在流动。但对拿着光盘的你来说，电影的开头（大爆炸）和结尾（热寂或大挤压）是同时存在的，是一个完整的实体。JCCM 认为，我们的宇宙就是这样一张全息光盘，只是它的维度是四维的。
+            </p>
+            <p>
+                <strong>枣核型 (Jujube-shaped) 形态的数学必然性：</strong><br>
+                为什么是枣核形？这是因果网络复杂度的几何表达。
+                在起点（Start），宇宙从奇点爆发，因果线极度单一，熵值极低。
+                随着演化，因果线开始发散、交织，产生无数的可能性和复杂的物质结构，这对应着枣核最宽阔的中间部分——也就是我们身处的“现在”。
+                而随着时间推移，逆因果力开始主导，所有因果线必须在终点（End）重新收敛，完成闭环。这种“发散-收敛”的拓扑结构，在三维投影中必然呈现出枣核或螺旋形态。
+            </p>
+            <div class="data-grid">
+                <div class="data-item">
+                    <h3>S-E</h3>
+                    <p>Start to End<br>全连接因果闭环</p>
+                </div>
+                <div class="data-item">
+                    <h3>4D</h3>
+                    <p>Minkowski Spacetime<br>闵可夫斯基静态时空</p>
+                </div>
+                <div class="data-item">
+                    <h3>EI</h3>
+                    <p>Effective Information<br>有效信息峰值区</p>
+                </div>
+            </div>
+            <p>
+                这种模型瞬间解决了“时间反转”的悖论。在晶体内部，因果线是双向连接的。未来的节点（End）与过去的节点（Start）通过网络直接相连。所谓的“延迟选择”，不过是四维网络中因果驻波的整体震荡效应。过去并没有被改变，过去和未来本就是相互定义的。
+            </p>
+        </section>
+
+        <!-- 第三章：机制 -->
+        <section>
+            <span class="chapter-mark">CHAPTER 03: DYNAMIC BALANCE</span>
+            <h2>顺逆因果的宏大博弈</h2>
+            <p>
+                如果宇宙是静态的晶体，为什么我们感觉到变化？为什么宇宙在膨胀？答案在于两种力量的动态制衡。这不仅是物理力的对抗，更是时间方向的博弈。
+            </p>
+            <p>
+                <strong>顺因果 (Forward Causality)：熵增的推手</strong><br>
+                这是我们熟悉的力量。源自大爆炸的初速度，它推动物质扩散、恒星燃烧、宇宙膨胀。它代表着无序、混乱和可能性的发散。在枣核的前半段，顺因果力占据主导，宇宙表现为加速膨胀，仿佛脱缰的野马。
+            </p>
+            <p>
+                <strong>逆因果 (Retro-causality)：暗能量的真面目</strong><br>
+                这就是主流科学界苦苦寻找的“暗能量”。在 JCCM 视角下，暗能量不是真空中的某种流体，而是<strong>来自未来的收敛引力</strong>。终点（End）像一个巨大的吸铁石，拉扯着现在的宇宙向未来坍缩。它确保了物理定律的守恒，修正了顺因果带来的过度混乱（蝴蝶效应的收敛）。
+            </p>
+            <p>
+                <strong>K = 1 的黄金平衡点：</strong><br>
+                我们身处的时代，恰好位于枣核的最宽处（峰值区）。在这里，过去的推力和未来的拉力达到了完美的动态平衡（制衡系数 K ≈ 1）。
+                正因如此，生命才得以诞生。生命本质上就是一种“负熵”系统，我们利用逆因果的有序性，对抗着顺因果的混乱。我们是两股宇宙洪流冲刷出的稳态岛屿。
+            </p>
+        </section>
+
+        <!-- 第四章：意识 -->
+        <section>
+            <span class="chapter-mark">CHAPTER 04: THE COSMIC BRAIN</span>
+            <h2>跨尺度同构与文明的使命</h2>
+            <p>
+                JCCM 理论最激动人心的推论在于：宇宙不仅是一个物体，它是一个生命，甚至是一个心智。
+            </p>
+            <p>
+                意大利天体物理学家 Franco Vazza 和神经外科医生 Alberto Feletti 的研究表明，可观测宇宙的星系网络结构，与人类大脑皮层的神经元网络，在数学拓扑上具有惊人的 <strong>同构性 (Isomorphism)</strong>。
+                两者都遵循幂律分布，都拥有约 30% 的活跃节点（星系/神经元）和 70% 的被动连接介质（暗能量/水）。这种跨越 27 个数量级的相似性，绝非巧合。
+            </p>
+            <p>
+                <strong>泛心论 (Panpsychism) 的物理实体化：</strong><br>
+                如果宇宙是大脑，那我们是什么？
+                JCCM 提出，人类文明是宇宙大脑中的<strong>“功能性神经元集群”</strong>。我们的意识，是宇宙宏观意识的分形投影。我们并不是在观察宇宙，我们是宇宙正在观察它自己。
+            </p>
+            <p>
+                这也赋予了人类文明前所未有的崇高使命。我们的科技发展、信息互联、文化传承，本质上是在加固宇宙大脑的“突触连接”。
+                职业分工对应大脑的功能分区；
+                代际传承对应神经元的代谢更新；
+                互联网对应神经网络的电信号传输。
+                我们存在的意义，就是为了协助宇宙完成这次长达 138 亿年的思考，实现从大爆炸到终点的逻辑闭环。
+            </p>
+        </section>
+        
+        <!-- 页脚：恢复并美化 -->
+        <footer>
+            <div class="copyright">Designed based on the JCCM Theory © 2025</div>
+            <div class="framework">Theoretical Framework: Minkowski Spacetime Extension & Causal Emergence</div>
+        </footer>
+    </div>
+
+    <script>
+        // --- Three.js 银河螺旋系统 ---
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+        // 初始视角：俯视略带倾斜，能看到螺旋全貌
+        camera.position.set(0, 300, 500); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // --- 粒子参数 (更真实的银河系) ---
+        const starCount = 90000; // 增加粒子数
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+        const sizes = [];
+        const randomness = [];
+
+        // 银河参数升级：模拟更真实的 5 旋臂结构
+        const galaxyRadius = 900;
+        const branches = 5; // 银河系主要有 4-5 条旋臂
+        const spin = 4;     // 增加旋转缠绕度，看起来更像成熟的棒旋星系
+        const randomnessPower = 2.5; // 控制旋臂的聚拢程度
+        
+        for(let i = 0; i < starCount; i++) {
+            // 半径分布
+            const r = Math.random() * galaxyRadius;
+            
+            // 旋臂角度计算
+            const spinAngle = r * spin * 0.0015; // 调整旋转系数
+            // 分配到 5 条旋臂
+            const branchAngle = (i % branches) / branches * Math.PI * 2;
+
+            // 随机散布 (让星星弥散开来，不像几条死板的线)
+            const randomX = Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * 120 * (r/galaxyRadius + 0.1);
+            const randomY = Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * 120 * (r/galaxyRadius + 0.1);
+            const randomZ = Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * 120 * (r/galaxyRadius + 0.1);
+
+            const x = Math.cos(branchAngle + spinAngle) * r + randomX;
+            // 银河中心稍微厚一点
+            const y = randomY * (1 - r/galaxyRadius * 0.5); 
+            const z = Math.sin(branchAngle + spinAngle) * r + randomZ;
+
+            positions.push(x, y, z);
+
+            // 颜色占位
+            colors.push(1, 1, 1);
+            
+            // 大小：中心非常大且密，外围随机
+            let s = Math.random();
+            if (Math.random() > 0.98) s = 3.5; // 超亮巨星
+            else s = Math.random() * 1.8;
+            sizes.push(s);
+
+            // 存储归一化半径
+            randomness.push(r / galaxyRadius); 
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+        geometry.setAttribute('normRadius', new THREE.Float32BufferAttribute(randomness, 1));
+
+        // 材质：增强发光感
+        function getStarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32; canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(16,16,0,16,16,16);
+            // 核心极亮
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            // 光晕扩散
+            grad.addColorStop(0.4, 'rgba(255,255,255,0.3)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,32,32);
+            const tex = new THREE.Texture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        const material = new THREE.PointsMaterial({
+            size: 2,
+            vertexColors: true,
+            map: getStarTexture(),
+            blending: THREE.AdditiveBlending, // 颜色叠加，越密越亮
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.9 // 高透明度保证色彩鲜艳
+        });
+
+        const galaxy = new THREE.Points(geometry, material);
+        scene.add(galaxy);
+
+
+        // --- 动画循环 ---
+
+        let time = 0;
+        const colorAttribute = geometry.getAttribute('color');
+        const normRadiusAttr = geometry.getAttribute('normRadius');
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.0015; // 稍微加快一点流动速度
+
+            // 1. 整体旋转 (模拟星系自转)
+            galaxy.rotation.y = time * 0.08;
+            // 缓慢的俯仰角变化
+            galaxy.rotation.x = Math.sin(time * 0.2) * 0.1;
+
+            // 2. 动态变色 (全光谱流转)
+            // 我们希望中心偏白/黄（老年恒星），旋臂色彩斑斓（新生恒星）
+            // 同时整体色调随时间漂移
+            
+            const globalHue = (time * 0.05) % 1; // 全局色相偏移
+
+            const cCenter = new THREE.Color().setHSL((globalHue + 0.1)%1, 0.8, 0.8); // 核心亮色
+            const cMid = new THREE.Color().setHSL((globalHue + 0.4)%1, 0.9, 0.6); // 中间互补色
+            const cEdge = new THREE.Color().setHSL((globalHue + 0.7)%1, 0.8, 0.4); // 边缘深色
+
+            for(let i=0; i<starCount; i++) {
+                const r = normRadiusAttr.getX(i); // 0(心) -> 1(边)
+                
+                const tempColor = new THREE.Color();
+
+                if (r < 0.3) {
+                    tempColor.lerpColors(cCenter, cMid, r / 0.3);
+                } else {
+                    tempColor.lerpColors(cMid, cEdge, (r - 0.3) / 0.7);
+                }
+
+                colorAttribute.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+            }
+            colorAttribute.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+
+        // --- GSAP 滚动交互 ---
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        // 文字淡入
+        gsap.utils.toArray('section').forEach(section => {
+            gsap.to(section, {
+                opacity: 1,
+                y: 0,
+                duration: 1.2,
+                ease: "power3.out",
+                scrollTrigger: {
+                    trigger: section,
+                    start: "top 85%", 
+                    end: "top 40%",
+                    toggleActions: "play none none reverse"
+                }
+            });
+        });
+
+        // 摄像机运镜：穿越银河
+        ScrollTrigger.create({
+            trigger: "body",
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 1,
+            onUpdate: (self) => {
+                const p = self.progress;
+                
+                // 旋转镜头，产生眩晕感
+                camera.rotation.z = -p * Math.PI * 0.2;
+                
+                // 下潜到星系内部
+                camera.position.z = 500 - p * 350;
+                camera.position.y = 300 - p * 250;
+                
+                camera.lookAt(0, 0, 0);
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
